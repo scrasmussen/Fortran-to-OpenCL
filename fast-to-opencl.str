@@ -2,7 +2,7 @@
 // Open Fortran Project
 // December 2014
 // Create by Soren Rasmussen
-// fortran-to-c.str
+// fortran-to-opencl.str
 //------------------------------------------------------------------
 
 module fast-to-opencl
@@ -48,34 +48,34 @@ signature
 
 strategies //=================START OF STRATEGIES==========================
 
-io-fast-to-c = io-wrap(
+io-fast-to-opencl = io-wrap(
               ArgOption(
                  "-n"
                  , where(<extend-config> ("-n", [<id>]))
                  , !"-n               Binding name to be selected")
-              , fast-to-c-usage
-              , fast-to-c-about
-              , fast-to-c-start
-	      //, fast-to-c-end
+              , fast-to-opencl-usage
+              , fast-to-opencl-about
+              , fast-to-opencl-start
+	      //, fast-to-opencl-end
 	      )
 
-fast-to-c-usage =
+fast-to-opencl-usage =
     default-system-usage(
-      !["Usage: fast-to-c -n binding_name"]
-    , !["\n   This program generates a ROSE AST from a Fortran AST (FAST).\n"]
+      !["Usage: fast-to-opencl -n binding_name"]
+    , !["\n   This program generates an OpenCL AST from a Fortran AST (FAST).\n"]
     )
 
-fast-to-c-about =
+fast-to-opencl-about =
     <echo> "Written by Soren Rasmussen <soren.rasmussen@aggiemail.usu.edu>"
 
-fast-to-c-start =
+fast-to-opencl-start =
 //     debug(!"START: ")
-    innermost(fast-to-c)
+    innermost(fast-to-opencl)
 //  ;  debug(!"FINISHED: ")
 
-fast-to-c-end =
+fast-to-opencl-end =
      debug(!"START-END: ")
-//  ;  topdown(fast-to-c-finish)
+//  ;  topdown(fast-to-opencl-finish)
   ;  debug(!"FINISHED-END: ")
 
 
@@ -85,21 +85,21 @@ IdDecl = ?name; !IdDecl([], Id(name), Some(ParamList([])))
 rules //=================================RULES=====================================
 
 // unary and binary operators
-fast-to-c :  Mult(expr1, expr2)  ->  Mul(expr1, expr2)
-fast-to-c :  Plus(expr)          ->  Positive(expr)
-fast-to-c :  Minus(expr)         ->  Negative(expr)
-fast-to-c :  Plus(expr1, expr2)  ->  Add(expr1, expr2)
-fast-to-c :  Minus(exprl,expr2)  ->  Subt(exprl,expr2)
+fast-to-opencl :  Mult(expr1, expr2)  ->  Mul(expr1, expr2)
+fast-to-opencl :  Plus(expr)          ->  Positive(expr)
+fast-to-opencl :  Minus(expr)         ->  Negative(expr)
+fast-to-opencl :  Plus(expr1, expr2)  ->  Add(expr1, expr2)
+fast-to-opencl :  Minus(exprl,expr2)  ->  Subt(exprl,expr2)
 
 // Array index
-fast-to-c = 
+fast-to-opencl = 
       ?PartRef(name, [index], something)
    ;  !ArrayIndex(Id(name), index)
 
   <+  ?RealLiteralConstant(num, _)
    ;  !FloatConst(num)
 
-fast-to-c = 
+fast-to-opencl = 
    // Possibly edit for better functionality 
       ?AssignmentStmt(_, left, right, _)
    ;  !Stat(Assign(left, AssignEq(), right))
@@ -119,7 +119,7 @@ fast-to-c =
 
 
 // NOT WORKING and currently NOT USED
-fast-to-c1 =
+fast-to-opencl1 =
   // Fixing Array indexing
       ?ArrayIndex(name1, Negative(index))
    ;  !ArrayIndex(name1, Negative(IntConst(index)))
@@ -130,5 +130,5 @@ fast-to-c1 =
   <+  ?ArrayIndex(name1, index)
    ;  !ArrayIndex(name1, IntConst(index))
 
-  //fast-to-c: Minus(expr) -> Negative(IntConst(expr))
-  //fast-to-c: Plus(expr)  -> Positive(IntConst(expr))
+  //fast-to-opencl: Minus(expr) -> Negative(IntConst(expr))
+  //fast-to-opencl: Plus(expr)  -> Positive(IntConst(expr))
