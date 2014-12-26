@@ -1,11 +1,11 @@
 //------------------------------------------------------------------
 // Open Fortran Project
 // December 2014
-// Create by Craig Rasmussen
+// Create by Soren Rasmussen
 // fortran-to-c.str
 //------------------------------------------------------------------
 
-module fast-to-c
+module fast-to-opencl
 
 imports
    libstratego-lib
