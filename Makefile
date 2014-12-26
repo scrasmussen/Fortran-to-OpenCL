@@ -17,7 +17,7 @@ LDFLAGS = $(ST_LDFLAGS) -la stratego-lib
 
 all : fast-to-opencl
 
-fast-to-c : fast-to-opencl.str
+fast-to-opencl : fast-to-opencl.str
 	$(ST_PATH)/strc -i fast-to-opencl.str $(CFLAGS) $(LDFLAGS) --main io-fast-to-opencl
 
 #lope-to-foropencl : lope-to-foropencl.str
@@ -26,7 +26,7 @@ fast-to-c : fast-to-opencl.str
 test:
 	sglri -p C-Files/C.tbl -i test.c | pp-aterm
 
-check : fast-to-c
+check : fast-to-opencl
 	clear
 	sglri -p $(TBL) -i restrict.lope | $(TO_FAST) | fast-to-opencl | $(TO_PP) | ast2text -p $(PP)
 
