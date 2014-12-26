@@ -1,0 +1,134 @@
+//------------------------------------------------------------------
+// Open Fortran Project
+// December 2014
+// Create by Craig Rasmussen
+// fortran-to-c.str
+//------------------------------------------------------------------
+
+module fast-to-c
+
+imports
+   libstratego-lib
+   FAST
+
+signature
+  constructors
+
+    TEST: A * B  -> TEST
+    Mult: A * B  -> Mult
+    Plus: A * B  -> Plus
+    PartRef: A * B * C -> PartRef
+    AssignmentStmt: A * B * C * D -> AssignmentStmt    
+    OfpExecPart: A -> OfpExecPart
+    OfpSubroutine: A * B -> OfpSubroutine
+    OfpScope: A * B * C * D * E * F -> OfpScope
+    OfpProgram: A * B -> OfpProgram
+
+    Mul:  A * B  -> Mul
+    Add:  A * B  -> Add
+    Subt: A * B  -> Subt
+    ArrayIndex: A * B -> ArrayIndex    
+    IntConst: A -> IntConst
+    Id: A -> Id
+    Negative: A -> Negative
+    Positive: A -> Positive
+    FloatConst: A -> FloatConst
+    Assign: A * B * C -> Assign
+    AssignEq: AssignEq
+    Stat: A -> A
+    Compound: A * B -> Compound
+    TypeSpec: A * B * C -> TypeSpec
+    IdDecl: A * B * C -> IdDecl
+    Some: A -> Some
+    ParamList: A -> ParamList
+    Void: Void
+    FunDef: A * B * C -> FunDef   
+    TranslationUnit: A -> TranslationUnit
+
+
+strategies //=================START OF STRATEGIES==========================
+
+io-fast-to-c = io-wrap(
+              ArgOption(
+                 "-n"
+                 , where(<extend-config> ("-n", [<id>]))
+                 , !"-n               Binding name to be selected")
+              , fast-to-c-usage
+              , fast-to-c-about
+              , fast-to-c-start
+	      //, fast-to-c-end
+	      )
+
+fast-to-c-usage =
+    default-system-usage(
+      !["Usage: fast-to-c -n binding_name"]
+    , !["\n   This program generates a ROSE AST from a Fortran AST (FAST).\n"]
+    )
+
+fast-to-c-about =
+    <echo> "Written by Soren Rasmussen <soren.rasmussen@aggiemail.usu.edu>"
+
+fast-to-c-start =
+//     debug(!"START: ")
+    innermost(fast-to-c)
+//  ;  debug(!"FINISHED: ")
+
+fast-to-c-end =
+     debug(!"START-END: ")
+//  ;  topdown(fast-to-c-finish)
+  ;  debug(!"FINISHED-END: ")
+
+
+TypeSpec = !TypeSpec([],Void(),[])
+IdDecl = ?name; !IdDecl([], Id(name), Some(ParamList([])))
+
+rules //=================================RULES=====================================
+
+// unary and binary operators
+fast-to-c :  Mult(expr1, expr2)  ->  Mul(expr1, expr2)
+fast-to-c :  Plus(expr)          ->  Positive(expr)
+fast-to-c :  Minus(expr)         ->  Negative(expr)
+fast-to-c :  Plus(expr1, expr2)  ->  Add(expr1, expr2)
+fast-to-c :  Minus(exprl,expr2)  ->  Subt(exprl,expr2)
+
+// Array index
+fast-to-c = 
+      ?PartRef(name, [index], something)
+   ;  !ArrayIndex(Id(name), index)
+
+  <+  ?RealLiteralConstant(num, _)
+   ;  !FloatConst(num)
+
+fast-to-c = 
+   // Possibly edit for better functionality 
+      ?AssignmentStmt(_, left, right, _)
+   ;  !Stat(Assign(left, AssignEq(), right))
+
+  <+  ?OfpExecPart(list)
+   ;  !Compound([],list)
+
+//  <+  ?OfpSubroutine(name, scope)
+//   ;  !FunDef(<TypeSpec>, <IdDecl>name, scope)
+
+//  <+  ?OfpScope(_, exec, _, _, _, _)
+//   ;  ![exec]
+
+  <+  ?OfpProgram(_, body)
+   ;  !TranslationUnit(body)
+
+
+
+// NOT WORKING and currently NOT USED
+fast-to-c1 =
+  // Fixing Array indexing
+      ?ArrayIndex(name1, Negative(index))
+   ;  !ArrayIndex(name1, Negative(IntConst(index)))
+
+  <+  ?ArrayIndex(name1, Positive(index))
+   ;  !ArrayIndex(name1, Positive(IntConst(index)))
+
+  <+  ?ArrayIndex(name1, index)
+   ;  !ArrayIndex(name1, IntConst(index))
+
+  //fast-to-c: Minus(expr) -> Negative(IntConst(expr))
+  //fast-to-c: Plus(expr)  -> Positive(IntConst(expr))

@@ -1,0 +1,12 @@
+pure CONCURRENT subroutine restrict(U1h, U2h)
+  real, intent(in ), HALO(:) :: U1h   ! fine grid
+  real, intent(out), HALO(:) :: U2h   ! coarse grid
+  
+  integer :: a=3, b=10
+  integer :: c
+
+  U2h(0) = 0.25*U1h(-1) + 0.5*U1h(0) + 0.25*U1h(+1)
+
+  c = a - b
+
+end subroutine
