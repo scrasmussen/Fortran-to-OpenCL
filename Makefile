@@ -15,10 +15,10 @@ PP      = $(PP_DIR)/Fortran.pp
 CFLAGS = $(ST_CFLAGS) -I ../ofp-sdf/LOPe/syntax -I ../ofp-sdf/fortran/syntax -I ../ofp-sdf/fortran/trans
 LDFLAGS = $(ST_LDFLAGS) -la stratego-lib
 
-all : fast-to-c
+all : fast-to-opencl
 
-fast-to-c : fast-to-c.str
-	$(ST_PATH)/strc -i fast-to-c.str $(CFLAGS) $(LDFLAGS) --main io-fast-to-c
+fast-to-c : fast-to-opencl.str
+	$(ST_PATH)/strc -i fast-to-opencl.str $(CFLAGS) $(LDFLAGS) --main io-fast-to-opencl
 
 #lope-to-foropencl : lope-to-foropencl.str
 #	$(ST_PATH)/strc -i lope-to-foropencl.str $(CFLAGS) $(LDFLAGS) --main io-lope-to-foropencl
@@ -28,9 +28,9 @@ test:
 
 check : fast-to-c
 	clear
-	sglri -p $(TBL) -i restrict.lope | $(TO_FAST) | fast-to-c | $(TO_PP) | ast2text -p $(PP)
+	sglri -p $(TBL) -i restrict.lope | $(TO_FAST) | fast-to-opencl | $(TO_PP) | ast2text -p $(PP)
 
 clean :
-	rm -f fast-to-c fast-to-c.c
-	rm -f fast-to-c fast-to-c.c
+	rm -f fast-to-opencl fast-to-opencl.c
+	rm -f fast-to-opencl fast-to-opencl.c
 	rm -f *.o *.lo *.dep
