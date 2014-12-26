@@ -1,4 +1,0 @@
-fast-to-c: \
-	../ofp-sdf/fortran/syntax/FAST.str \
-	/opt/strategoxt/v0.17/share/libstratego-lib.rtree \
-	./fast-to-c.str
