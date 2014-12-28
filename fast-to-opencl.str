@@ -48,7 +48,7 @@ signature
 
 strategies //=================START OF STRATEGIES==========================
 
-io-fast-to-opencl = io-wrap(
+io-fast-to-opencl-NOTWORKING = io-wrap(
               ArgOption(
                  "-n"
                  , where(<extend-config> ("-n", [<id>]))
@@ -69,20 +69,74 @@ fast-to-opencl-about =
     <echo> "Written by Soren Rasmussen <soren.rasmussen@aggiemail.usu.edu>"
 
 fast-to-opencl-start =
-//     debug(!"START: ")
-    innermost(fast-to-opencl)
-//  ;  debug(!"FINISHED: ")
+{ st
+   :  debug(!"START: ")
+   ; new-hashtable => st  
+//    ; innermost(fast-to-opencl)
+   ;  debug(!"FINISHED: ")
+}
 
 fast-to-opencl-end =
      debug(!"START-END: ")
 //  ;  topdown(fast-to-opencl-finish)
   ;  debug(!"FINISHED-END: ")
 
+io-fast-to-opencl =
+  io-wrap(fast-to-opencl)
+
+fast-to-opencl =
+{ st
+   : ?OfpProgram(name, units)
+   ; new-hashtable => st  
+   ; !OfpProgram(name, units)
+   ; debug(!"HELLO ")
+   ; topdown(try(fast-get-symbols(|st)))
+   ; <hashtable-keys> st
+   ; debug(!"KEYS:------- ")
+   ; <hashtable-values> st
+   ; debug(!"VALS:------- ")
+   ; !OfpProgram(name, units)
+//   ;debug(!"AFTER_ST:-------")
+//   ; innermost(fast-to-opencl)
+//   ;  debug(!"FINISHED: ")
+}
+
+
+
 
 TypeSpec = !TypeSpec([],Void(),[])
 IdDecl = ?name; !IdDecl([], Id(name), Some(ParamList([])))
 
 rules //=================================RULES=====================================
+
+// Build Symbol Table
+
+// Add declared variables to symbol table
+fast-get-symbols(|st) =
+     ?TypeDeclarationStmt(label,type,attrs,vars,eos)
+  ;  <map(st-add-symbol(|st,type,attrs))><map(ofp-ident)>vars 
+  ;  !TypeDeclarationStmt(label,type,attrs,vars,eos)
+
+// Update symbol table with information from allocate statements
+//fast-get-symbols(|st) =
+//     ?AllocateStmt(label,type,alloc_list,options,eos)
+//  ;  <map(fast-update-allocation-symbol(|st))> alloc_list
+//  ;  !AllocateStmt(label,type,alloc_list,options,eos)
+
+
+
+// Add a symbol to the symbol table
+st-add-symbol(|st,type,attrs) =
+     ?symbol
+  ;  <hashtable-put(|symbol,(type,attrs))> st
+
+ofp-ident
+  :  EntityDecl(ident,_,_,_,_) -> ident
+
+fast-update-allocation-dim =
+     ?(AllocateShapeSpec(lb,ub),DimSpec(_,_))
+  ;  !DimSpec(lb,ub)
+
 
 // unary and binary operators
 fast-to-opencl :  Mult(expr1, expr2)  ->  Mul(expr1, expr2)
