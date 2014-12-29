@@ -1,18 +1,18 @@
-include ../ofp-sdf/make.inc
+include make.inc
 #include lope-lower.dep
 #include lope-to-foropencl.dep
 
-SYNTAX_DIR = ../ofp-sdf/LOPe/syntax
-TRANS_DIR  = ../ofp-sdf/fortran/trans
-PP_DIR     = ../ofp-sdf/fortran/pp
+SYNTAX_DIR = $(OFP_PATH)/fortran/syntax
+TRANS_DIR  = $(OFP_PATH)/fortran/trans
+PP_DIR     = $(OFP_PATH)/fortran/pp
 
-TBL     = $(SYNTAX_DIR)/LOPe.tbl
+TBL     = $(OFP_PATH)/LOPe/syntax/LOPe.tbl
 TO_SIM  = $(TRANS_DIR)/ofp-simplify
 TO_FAST = $(TRANS_DIR)/ofp2fast
 TO_PP   = $(TRANS_DIR)/fast2pp
 PP      = $(PP_DIR)/Fortran.pp
 
-CFLAGS = $(ST_CFLAGS) -I ../ofp-sdf/LOPe/syntax -I ../ofp-sdf/fortran/syntax -I ../ofp-sdf/fortran/trans
+CFLAGS = $(ST_CFLAGS) -I $(OFP_PATH)/LOPe/syntax -I $(SYNTAX_DIR) -I $(TRANS_DIR)
 LDFLAGS = $(ST_LDFLAGS) -la stratego-lib
 
 all : fast-to-opencl
