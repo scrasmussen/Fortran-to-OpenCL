@@ -29,6 +29,7 @@ signature
     Subt: A * B  -> Subt
     ArrayIndex: A * B -> ArrayIndex    
     IntConst: A -> IntConst
+    TypeId: A -> TypeId
     Id: A -> Id
     Negative: A -> Negative
     Positive: A -> Positive
@@ -43,7 +44,12 @@ signature
     ParamList: A -> ParamList
     Void: Void
     FunDef: A * B * C -> FunDef   
+    FunCall: A * B -> FunCall
     TranslationUnit: A -> TranslationUnit
+    Lt: A * B -> Lt
+    If: A * B -> If
+
+
 
 
 strategies //=================START OF STRATEGIES==========================
@@ -82,9 +88,9 @@ fast-to-opencl-end =
   ;  debug(!"FINISHED-END: ")
 
 io-fast-to-opencl =
-  io-wrap(fast-to-opencl)
+  io-wrap(start-fast-to-opencl)
 
-fast-to-opencl =
+start-fast-to-opencl =
 { st
    : ?OfpProgram(name, units)
    ; new-hashtable => st  
@@ -96,6 +102,7 @@ fast-to-opencl =
    ; <hashtable-values> st
    ; debug(!"VALS:------- ")
    ; !OfpProgram(name, units)
+   ; topdown(try(fast-to-opencl))
 //   ;debug(!"AFTER_ST:-------")
 //   ; innermost(fast-to-opencl)
 //   ;  debug(!"FINISHED: ")
@@ -104,8 +111,29 @@ fast-to-opencl =
 
 
 
-TypeSpec = !TypeSpec([],Void(),[])
-IdDecl = ?name; !IdDecl([], Id(name), Some(ParamList([])))
+TypeSpec = !TypeSpec([],TypeId("__kernel"),[Void()])
+IdDecl = 
+     ?(name, spec_list)
+   ; !IdDecl([], Id(name), Some(ParamList(spec_list)))
+
+Compound =
+     ?(spec_list, exec_list)
+   ; !Compound(<create-decl>spec_list, <create-func>exec_list)
+
+
+// create if statements before function declaration
+create-func =
+     ?exec_list
+   ; ![<func-if-statements>exec_list]
+
+func-if-statements =
+     ?exec_list
+   ; !If( Lt( Id("k__"), Mul(FunCall(Id("get_global_size"), [IntConst("0")]),FunCall(Id("get_global_size"), [IntConst("1")]))), exec_list)
+
+//TO ADD, map and match to symbol table, if not equal then
+create-decl =
+     ?spec_list
+   ; !spec_list
 
 rules //=================================RULES=====================================
 
@@ -158,17 +186,20 @@ fast-to-opencl =
       ?AssignmentStmt(_, left, right, _)
    ;  !Stat(Assign(left, AssignEq(), right))
 
-  <+  ?OfpExecPart(list)
-   ;  !Compound([],list)
+//  <+  ?OfpExecPart(list)
+//   ;  !Compound([],list)
 
-//  <+  ?OfpSubroutine(name, scope)
-//   ;  !FunDef(<TypeSpec>, <IdDecl>name, scope)
+  <+  ?OfpSubroutine(name, OfpScope(_,OfpExecPart(exec_list),_,SubroutineStmt(_,_,_,spec_list,_,_),_,_))
+   ;  !FunDef(<TypeSpec>, <IdDecl>(name,spec_list), <Compound>(spec_list,exec_list))
 
 //  <+  ?OfpScope(_, exec, _, _, _, _)
 //   ;  ![exec]
 
   <+  ?OfpProgram(_, body)
    ;  !TranslationUnit(body)
+
+
+
 
 
 
