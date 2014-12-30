@@ -43,13 +43,23 @@ signature
     Some: A -> Some
     ParamList: A -> ParamList
     Void: Void
+    Float: Float
     FunDef: A * B * C -> FunDef   
     FunCall: A * B -> FunCall
     TranslationUnit: A -> TranslationUnit
     Lt: A * B -> Lt
     If: A * B -> If
+    IntrinsicType: A -> IntrinsicType
+    ParamDecl: A * B -> ParamDecl
+    Halo: A -> Halo
+    PointerOf: A -> PointerOf
 
 
+// Constructors for FAST
+// TODO - should be imported
+    ALLOCATED : ALLOCATED
+    VarRef    : Name -> VarRef
+    VarDef    : Name -> OfpVarDef
 
 
 strategies //=================START OF STRATEGIES==========================
@@ -102,7 +112,7 @@ start-fast-to-opencl =
    ; <hashtable-values> st
    ; debug(!"VALS:------- ")
    ; !OfpProgram(name, units)
-   ; topdown(try(fast-to-opencl))
+   ; topdown(try(fast-to-opencl(|st)))
 //   ;debug(!"AFTER_ST:-------")
 //   ; innermost(fast-to-opencl)
 //   ;  debug(!"FINISHED: ")
@@ -112,9 +122,38 @@ start-fast-to-opencl =
 
 
 TypeSpec = !TypeSpec([],TypeId("__kernel"),[Void()])
-IdDecl = 
+IdDecl(|st) = 
      ?(name, spec_list)
-   ; !IdDecl([], Id(name), Some(ParamList(spec_list)))
+   ; <hashtable-get(|"A")> st
+   ; !IdDecl([], Id(name), Some(ParamList(<map(f-to-c-paramlist(|st))>spec_list)))
+   ; debug(!"SYMBOLDos: -----")  
+
+f-to-c-paramlist(|st) =
+     ?symbol
+//   ; debug(!"SYMBOL: -----")
+  ;  param := <hashtable-get(|symbol)>st
+  ; !<f-to-c-paramdecl>param
+
+f-to-c-paramdecl =
+     ?(IntrinsicType(type), list)
+//     ?list      
+   ; debug(!"SYMBOL: -----")
+   ; !ParamDecl(<ParamDecl><fast-to-c-type>type, Some(IdDecl([<fast-to-c-pointer>list],Id("NAME"), None())))
+//                [<map(fast-to-c-pointer)>list],Id("NAME"), None())))
+
+
+fast-to-c-pointer =
+     ?term
+   ; !<array-find>term < !"FOUND" + !"NOT"
+//     ; !<array-find>term
+//array-find = ?Halo(_) ; !PointerOf([])
+array-find = ?Compound(_, _) ; !PointerOf([])
+//array-find: Halo(_) -> PointerOf([])
+
+
+ParamDecl = 
+     ?type
+   ; !TypeSpec([], TypeId("__global"), [type])
 
 Compound =
      ?(spec_list, exec_list)
@@ -137,51 +176,22 @@ create-decl =
 
 rules //=================================RULES=====================================
 
-// Build Symbol Table
-
-// Add declared variables to symbol table
-fast-get-symbols(|st) =
-     ?TypeDeclarationStmt(label,type,attrs,vars,eos)
-  ;  <map(st-add-symbol(|st,type,attrs))><map(ofp-ident)>vars 
-  ;  !TypeDeclarationStmt(label,type,attrs,vars,eos)
-
-// Update symbol table with information from allocate statements
-//fast-get-symbols(|st) =
-//     ?AllocateStmt(label,type,alloc_list,options,eos)
-//  ;  <map(fast-update-allocation-symbol(|st))> alloc_list
-//  ;  !AllocateStmt(label,type,alloc_list,options,eos)
-
-
-
-// Add a symbol to the symbol table
-st-add-symbol(|st,type,attrs) =
-     ?symbol
-  ;  <hashtable-put(|symbol,(type,attrs))> st
-
-ofp-ident
-  :  EntityDecl(ident,_,_,_,_) -> ident
-
-fast-update-allocation-dim =
-     ?(AllocateShapeSpec(lb,ub),DimSpec(_,_))
-  ;  !DimSpec(lb,ub)
-
-
 // unary and binary operators
-fast-to-opencl :  Mult(expr1, expr2)  ->  Mul(expr1, expr2)
-fast-to-opencl :  Plus(expr)          ->  Positive(expr)
-fast-to-opencl :  Minus(expr)         ->  Negative(expr)
-fast-to-opencl :  Plus(expr1, expr2)  ->  Add(expr1, expr2)
-fast-to-opencl :  Minus(exprl,expr2)  ->  Subt(exprl,expr2)
+fast-to-opencl(|st) :  Mult(expr1, expr2)  ->  Mul(expr1, expr2)
+fast-to-opencl(|st) :  Plus(expr)          ->  Positive(expr)
+fast-to-opencl(|st) :  Minus(expr)         ->  Negative(expr)
+fast-to-opencl(|st) :  Plus(expr1, expr2)  ->  Add(expr1, expr2)
+fast-to-opencl(|st) :  Minus(exprl,expr2)  ->  Subt(exprl,expr2)
 
 // Array index
-fast-to-opencl = 
+fast-to-opencl(|st) = 
       ?PartRef(name, [index], something)
    ;  !ArrayIndex(Id(name), index)
 
   <+  ?RealLiteralConstant(num, _)
    ;  !FloatConst(num)
 
-fast-to-opencl = 
+fast-to-opencl(|st) = 
    // Possibly edit for better functionality 
       ?AssignmentStmt(_, left, right, _)
    ;  !Stat(Assign(left, AssignEq(), right))
@@ -190,7 +200,7 @@ fast-to-opencl =
 //   ;  !Compound([],list)
 
   <+  ?OfpSubroutine(name, OfpScope(_,OfpExecPart(exec_list),_,SubroutineStmt(_,_,_,spec_list,_,_),_,_))
-   ;  !FunDef(<TypeSpec>, <IdDecl>(name,spec_list), <Compound>(spec_list,exec_list))
+   ;  !FunDef(<TypeSpec>, <IdDecl(|st)>(name,spec_list), <Compound>(spec_list,exec_list))
 
 //  <+  ?OfpScope(_, exec, _, _, _, _)
 //   ;  ![exec]
@@ -204,7 +214,7 @@ fast-to-opencl =
 
 
 // NOT WORKING and currently NOT USED
-fast-to-opencl1 =
+fast-to-opencl1(|st) =
   // Fixing Array indexing
       ?ArrayIndex(name1, Negative(index))
    ;  !ArrayIndex(name1, Negative(IntConst(index)))
@@ -217,3 +227,111 @@ fast-to-opencl1 =
 
   //fast-to-opencl: Minus(expr) -> Negative(IntConst(expr))
   //fast-to-opencl: Plus(expr)  -> Positive(IntConst(expr))
+
+
+fast-to-c-type: REAL(_) -> Float()
+
+
+// FAST strategies (GET LIB EVENTUALLY FROM fortran/trans)
+// -------------------------------------------------------
+
+
+
+
+
+
+// Build symbol table
+// ------------------
+
+// Add a symbol to the symbol table
+st-add-symbol(|st,type,attrs) =
+     ?symbol
+  ;  <hashtable-put(|symbol,(type,attrs))> st
+
+// Add declared variables to symbol table
+fast-get-symbols(|st) =
+     ?TypeDeclarationStmt(label,type,attrs,vars,eos)
+  ;  <map(st-add-symbol(|st,type,attrs))> <map(ofp-ident)> vars
+  ;  !TypeDeclarationStmt(label,type,attrs,vars,eos)
+
+// Update symbol table with information from allocate statements
+fast-get-symbols(|st) =
+     ?AllocateStmt(label,type,alloc_list,options,eos)
+  ;  <map(fast-update-allocation-symbol(|st))> alloc_list
+  ;  !AllocateStmt(label,type,alloc_list,options,eos)
+
+fast-var-name =
+     ?VarRef(name)
+  ;  !name
+ <+  ?VarDef(name)
+  ;  !name
+
+// Remove excess list elements inside of OfpSpecPart and OfpExecPart
+//   - occurs when a single statement is replaced by a list of statements
+fast-flatten-scope-parts =
+     ?OfpSpecPart(list)
+  ;  !OfpSpecPart(<flatten-list>list)
+ <+  ?OfpExecPart(list)
+  ;  !OfpExecPart(<flatten-list>list)
+
+fast-allocation-object =
+     ?Allocation(object,_,_)
+  ;  <fast-var-name> object
+
+fast-dim-size =
+     ?DimSpec(lb,ub)
+  ;  !Parens(Minus(ub,lb))
+  ;  !Parens(Plus(<id>,"1"))
+
+// Size of a type in bytes
+// TODO - add other intrinsic types and support for kinds
+// TODO - could replace kind with size in bytes!!!!
+fast-type-size =
+     ?IntrinsicType(REAL(no-kind())) ; !"4"
+
+fast-mult-op =
+     ?(l,r)
+  ;  !Mult(l,r)
+
+fast-allocation-size(|st) =
+     ?symbol
+  ;  <hashtable-get(|symbol)> st
+  ;  ?(type,attrs)
+  ;  <fetch-elem(?Dimension(shape))> attrs
+  ;  innermost(fast-var-name)
+  ;  <map(fast-dim-size)> shape
+  ;  <foldr(!"1",fast-mult-op)> <id>
+  ;  <fast-mult-op> (<fast-type-size>type,<id>)
+
+fast-fix-no-lower-bound =
+     ?no-lower-bound()
+  ;  !"1"
+
+fast-update-allocation-dim =
+     ?(AllocateShapeSpec(lb,ub),DimSpec(_,_))
+  ;  !DimSpec(lb,ub)
+
+fast-update-allocation-codim =
+     ?(AllocateCoshapeSpec(lb,ub),DimSpec(_,_))
+  ;  !DimSpec(lb,ub)
+
+// Update the symbol table with information from an allocate statement
+fast-update-allocation-symbol(|st) =
+{shape,coshape,attrs
+  :  topdown(try(fast-fix-no-lower-bound))
+  ;  ?Allocation(VarRef(obj),alloc_shape,alloc_coshape)
+  ;  <hashtable-get(|obj)> st
+  ;  ?(type,decl_attrs)
+  ;  <elem> (ALLOCATABLE(),decl_attrs)   // ensure this symbol is allocatable
+  ;  <fetch-elem(?Dimension(decl_shape))> decl_attrs
+  ;  <fetch-elem(?Codimension(decl_coshape))> decl_attrs
+  ;  <zip(fast-update-allocation-dim)>   (alloc_shape,  decl_shape)   =>   shape
+  ;  <zip(fast-update-allocation-codim)> (alloc_coshape,decl_coshape) => coshape
+  ;  <filter( try(?Dimension(_)   ; !Dimension(shape))     )> decl_attrs
+  ;  <filter( try(?Codimension(_) ; !Codimension(coshape)) )> <id>
+  ;  <filter( try(?ALLOCATABLE()  ; !ALLOCATED()) )> <id> => attrs
+  ;  <hashtable-put(|obj,(type,attrs))> st
+}
+
+ofp-ident
+  :  EntityDecl(ident,_,_,_,_) -> ident
