@@ -20,3 +20,7 @@ ST_CFLAGS += -Xcc -Wno-parentheses-equality
 ## parse table for parsing signature files
 #
 STRATEGO_TBL = /usr/local/packages/strategoxt-0.17/stratego-front/syn/StrategoStratego.tbl
+
+
+## Define OFP_PATH
+OFP_PATH = ../ofp-sdf
