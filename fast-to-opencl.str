@@ -53,7 +53,12 @@ signature
     ParamDecl: A * B -> ParamDecl
     Halo: A -> Halo
     PointerOf: A -> PointerOf
-
+    Int: Int
+    Const: Const
+    Unsigned: Unsigned
+    DeclInit: A * B -> DeclInit
+    Declaration2: A * B -> Declaration2
+    AssignInit: A -> AssignInit
 
 // Constructors for FAST
 // TODO - should be imported
@@ -124,40 +129,33 @@ start-fast-to-opencl =
 TypeSpec = !TypeSpec([],TypeId("__kernel"),[Void()])
 IdDecl(|st) = 
      ?(name, spec_list)
-   ; <hashtable-get(|"A")> st
+//   ; <hashtable-get(|"A")> st
    ; !IdDecl([], Id(name), Some(ParamList(<map(f-to-c-paramlist(|st))>spec_list)))
    ; debug(!"SYMBOLDos: -----")  
 
 f-to-c-paramlist(|st) =
      ?symbol
-//   ; debug(!"SYMBOL: -----")
   ;  param := <hashtable-get(|symbol)>st
-  ; !<f-to-c-paramdecl>param
+  ; !<f-to-c-paramdecl>(param, symbol)
 
 f-to-c-paramdecl =
-     ?(IntrinsicType(type), list)
-//     ?list      
+     ?((IntrinsicType(type), list), name)
    ; debug(!"SYMBOL: -----")
-   ; !ParamDecl(<ParamDecl><fast-to-c-type>type, Some(IdDecl([<fast-to-c-pointer>list],Id("NAME"), None())))
-//                [<map(fast-to-c-pointer)>list],Id("NAME"), None())))
+   ; !ParamDecl(<ParamDecl><fast-to-c-type>type, Some(IdDecl(<flatten-list>[<fast-to-c-pointer>list],Id(name), None())))
 
 
 fast-to-c-pointer =
-     ?term
-   ; !<array-find>term < !"FOUND" + !"NOT"
-//     ; !<array-find>term
-//array-find = ?Halo(_) ; !PointerOf([])
-array-find = ?Compound(_, _) ; !PointerOf([])
-//array-find: Halo(_) -> PointerOf([])
+     ?list
+   ; !<or(fetch(?Halo(_)), fetch(?Dimension(_)))>list < !PointerOf([]) + ![]
 
 
 ParamDecl = 
      ?type
    ; !TypeSpec([], TypeId("__global"), [type])
 
-Compound =
+Compound(|st) =
      ?(spec_list, exec_list)
-   ; !Compound(<create-decl>spec_list, <create-func>exec_list)
+   ; !Compound(<create-decl(|st)>spec_list, <create-func>exec_list)
 
 
 // create if statements before function declaration
@@ -170,9 +168,28 @@ func-if-statements =
    ; !If( Lt( Id("k__"), Mul(FunCall(Id("get_global_size"), [IntConst("0")]),FunCall(Id("get_global_size"), [IntConst("1")]))), exec_list)
 
 //TO ADD, map and match to symbol table, if not equal then
-create-decl =
+create-decl(|st) =
      ?spec_list
-   ; !spec_list
+   ; local_list := <diff>(<hashtable-keys>st, spec_list)
+   ; !<concat>[[<create-globalid-Declaration>("kx__",0), <create-globalid-Declaration>("ky__",1), <create-k>("k__", "kx__","ky__")], <map(create-local-var(|st))>local_list]
+
+create-local-var(|st) =
+     ?symbol
+   ; param := <hashtable-get(|symbol)>st
+//   ; debug(!"DECL: -----")
+   ; !<f-to-c-local-paramdecl>(param, symbol)
+
+f-to-c-local-paramdecl =
+     ?((IntrinsicType(type),_), name)
+   ; !ParamDecl(<ParamDecl><fast-to-c-type>type, Some(IdDecl([],Id(name), None())))
+
+create-globalid-Declaration =
+     ?(name, index)
+   ; !Declaration2(TypeSpec([Const()],Unsigned(), [Int()]),[DeclInit(IdDecl([],Id(name),None()), AssignInit(FunCall(Id("get_global_id"), [IntConst(index)])))])
+
+create-k =
+     ?(name, var-1, var-2)
+   ; !Declaration2(TypeSpec([Const()],Unsigned(), [Int()]),[DeclInit(IdDecl([],Id(name),None()), AssignInit(Add(Id(var-1),Mul(Id(var-2), FunCall(Id("get_global_size"), [IntConst("0")])))))])
 
 rules //=================================RULES=====================================
 
@@ -196,11 +213,9 @@ fast-to-opencl(|st) =
       ?AssignmentStmt(_, left, right, _)
    ;  !Stat(Assign(left, AssignEq(), right))
 
-//  <+  ?OfpExecPart(list)
-//   ;  !Compound([],list)
 
   <+  ?OfpSubroutine(name, OfpScope(_,OfpExecPart(exec_list),_,SubroutineStmt(_,_,_,spec_list,_,_),_,_))
-   ;  !FunDef(<TypeSpec>, <IdDecl(|st)>(name,spec_list), <Compound>(spec_list,exec_list))
+   ;  !FunDef(<TypeSpec>, <IdDecl(|st)>(name,spec_list), <Compound(|st)>(spec_list,exec_list))
 
 //  <+  ?OfpScope(_, exec, _, _, _, _)
 //   ;  ![exec]
@@ -230,7 +245,7 @@ fast-to-opencl1(|st) =
 
 
 fast-to-c-type: REAL(_) -> Float()
-
+fast-to-c-type: INTEGER(_) -> Int()
 
 // FAST strategies (GET LIB EVENTUALLY FROM fortran/trans)
 // -------------------------------------------------------
