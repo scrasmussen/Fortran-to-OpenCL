@@ -162,11 +162,11 @@ create-local-var(|st) =
      ?symbol
    ; param := <hashtable-get(|symbol)>st
 //   ; debug(!"DECL: -----")
-   ; !<f-to-c-local-paramdecl>(param, symbol)
+   ; !<f-to-c-local-type-decl>(param, symbol)
 
-f-to-c-local-paramdecl =
+f-to-c-local-type-decl =
      ?((IntrinsicType(type),_), name)
-   ; !ParamDecl(<ParamDecl><fast-to-c-type>type, Some(IdDecl([],Id(name), None())))
+   ; !Declaration2(TypeSpec([], <fast-to-c-type>type,[]),IdDecl([],Id(name), None()))
 
 create-globalid-Declaration =
      ?(name, index)
