@@ -77,7 +77,6 @@ io-fast-to-opencl-NOTWORKING = io-wrap(
               , fast-to-opencl-usage
               , fast-to-opencl-about
               , fast-to-opencl-start
-	      //, fast-to-opencl-end
 	      )
 
 fast-to-opencl-usage =
@@ -97,11 +96,6 @@ fast-to-opencl-start =
    ;  debug(!"FINISHED: ")
 }
 
-fast-to-opencl-end =
-     debug(!"START-END: ")
-//  ;  topdown(fast-to-opencl-finish)
-  ;  debug(!"FINISHED-END: ")
-
 io-fast-to-opencl =
   io-wrap(start-fast-to-opencl)
 
@@ -110,17 +104,11 @@ start-fast-to-opencl =
    : ?OfpProgram(name, units)
    ; new-hashtable => st  
    ; !OfpProgram(name, units)
-   ; debug(!"HELLO ")
    ; topdown(try(fast-get-symbols(|st)))
    ; <hashtable-keys> st
-   ; debug(!"KEYS:------- ")
    ; <hashtable-values> st
-   ; debug(!"VALS:------- ")
    ; !OfpProgram(name, units)
    ; topdown(try(fast-to-opencl(|st)))
-//   ;debug(!"AFTER_ST:-------")
-//   ; innermost(fast-to-opencl)
-//   ;  debug(!"FINISHED: ")
 }
 
 
@@ -129,9 +117,7 @@ start-fast-to-opencl =
 TypeSpec = !TypeSpec([],TypeId("__kernel"),[Void()])
 IdDecl(|st) = 
      ?(name, spec_list)
-//   ; <hashtable-get(|"A")> st
    ; !IdDecl([], Id(name), Some(ParamList(<map(f-to-c-paramlist(|st))>spec_list)))
-   ; debug(!"SYMBOLDos: -----")  
 
 f-to-c-paramlist(|st) =
      ?symbol
@@ -140,7 +126,6 @@ f-to-c-paramlist(|st) =
 
 f-to-c-paramdecl =
      ?((IntrinsicType(type), list), name)
-   ; debug(!"SYMBOL: -----")
    ; !ParamDecl(<ParamDecl><fast-to-c-type>type, Some(IdDecl(<flatten-list>[<fast-to-c-pointer>list],Id(name), None())))
 
 
@@ -225,34 +210,11 @@ fast-to-opencl(|st) =
 
 
 
-
-
-
-// NOT WORKING and currently NOT USED
-fast-to-opencl1(|st) =
-  // Fixing Array indexing
-      ?ArrayIndex(name1, Negative(index))
-   ;  !ArrayIndex(name1, Negative(IntConst(index)))
-
-  <+  ?ArrayIndex(name1, Positive(index))
-   ;  !ArrayIndex(name1, Positive(IntConst(index)))
-
-  <+  ?ArrayIndex(name1, index)
-   ;  !ArrayIndex(name1, IntConst(index))
-
-  //fast-to-opencl: Minus(expr) -> Negative(IntConst(expr))
-  //fast-to-opencl: Plus(expr)  -> Positive(IntConst(expr))
-
-
 fast-to-c-type: REAL(_) -> Float()
 fast-to-c-type: INTEGER(_) -> Int()
 
 // FAST strategies (GET LIB EVENTUALLY FROM fortran/trans)
 // -------------------------------------------------------
-
-
-
-
 
 
 // Build symbol table
