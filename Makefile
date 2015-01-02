@@ -28,7 +28,7 @@ test:
 
 check : fast-to-opencl
 	clear
-	sglri -p $(TBL) -i restrict.lope | $(TO_FAST) | fast-to-opencl | $(TO_PP) | ast2text -p $(PP)
+	sglri -p $(TBL) -i restrict.lope | $(TO_FAST) | fast-to-opencl | ast2text -p C-Files/C.pp
 
 clean :
 	rm -f fast-to-opencl fast-to-opencl.c
