@@ -150,7 +150,7 @@ create-func =
 
 func-if-statements =
      ?exec_list
-   ; !If( Lt( Id("k__"), Mul(FunCall(Id("get_global_size"), [IntConst("0")]),FunCall(Id("get_global_size"), [IntConst("1")]))), exec_list)
+   ; !If( Lt( Id("k__"), Mul(FunCall(Id("get_global_size"), [IntConst("0")]),FunCall(Id("get_global_size"), [IntConst("1")]))), Compound([], exec_list))
 
 //TO ADD, map and match to symbol table, if not equal then
 create-decl(|st) =
